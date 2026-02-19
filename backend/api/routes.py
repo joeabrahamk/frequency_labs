@@ -166,3 +166,6 @@ async def rank_headphones(request: UserRequest):
         "ranked_headphones": [],
         "explanation": {}
     }
+
+# Vercel serverless function handler
+handler = app
