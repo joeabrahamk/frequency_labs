@@ -17,6 +17,7 @@
     "tailwindcss": "^4.0.0",
     "@tailwindcss/postcss": "^4.0.0",
     "postcss": "^8.4.24",
-    "autoprefixer": "^10.4.14"
+    "autoprefixer": "^10.4.14",
+    "terser": "^5.20.0"
   }
 }
