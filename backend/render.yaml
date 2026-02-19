@@ -1,10 +1,10 @@
 services:
   - type: web
     name: frequency-labs-backend
-    env: python311
+    env: python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api.routes:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11
+        value: 3.11.8
