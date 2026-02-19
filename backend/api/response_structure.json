@@ -1,0 +1,23 @@
+{
+    "ranked_headphones": [
+        {
+            "model": "Headphone A",
+            "score": 0.85,
+            "contributions": {
+                "latency": 0.7,
+                "mic_quality": 0.15
+            }
+        },
+        {
+            "model": "Headphone B",
+            "score": 0.75,
+            "contributions": {
+                "water_resistance": 0.6,
+                "comfort_score": 0.15
+            }
+        }
+    ],
+    "explanation": {
+        "reasoning": "Headphone A scored higher due to better latency and mic quality for gaming use case."
+    }
+}
