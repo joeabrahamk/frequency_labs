@@ -100,7 +100,7 @@ async def evaluate(request: UserRequest):
     Evaluate headphones across multiple use cases.
     Each use case is scored independently, then blended by percentage.
     """
-    headphones_data = [h.model_dump() for h in request.headphones]
+    headphones_data = [h.dict() for h in request.headphones]
     
     # Validate total percentage
     total_percentage = sum(uc.percentage for uc in request.use_cases)
