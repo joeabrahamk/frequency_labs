@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import HeroSection from './components/HeroSection'
 import UseCaseSelector from './components/UseCaseSelector'
 import HeadphoneForm from './components/HeadphoneForm'
 import ResultsSection from './components/ResultsSection'
-import { evaluateDecision } from './services/api'
+import { evaluateDecision, pingBackend } from './services/api'
 
 export default function App() {
   const [currentSection, setCurrentSection] = useState('hero')
@@ -13,6 +13,13 @@ export default function App() {
   const [error, setError] = useState(null)
 
   const resultsRef = useRef(null)
+
+  // Ping backend on app load and periodically to keep it alive on free tier
+  useEffect(() => {
+    pingBackend()
+    const pingInterval = setInterval(pingBackend, 5 * 60 * 1000) // Ping every 5 minutes
+    return () => clearInterval(pingInterval)
+  }, [])
 
   const handleStartClick = () => {
     setCurrentSection('use-cases')

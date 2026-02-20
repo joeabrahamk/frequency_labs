@@ -14,6 +14,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Health check endpoint for keeping backend alive on Render free tier
+@app.get("/")
+async def health_check():
+    return {"status": "ok", "message": "Backend is running"}
+
 # Normalization ranges for each spec
 SPEC_RANGES = {
     'latency': (0, 200, True),      # Lower is better
