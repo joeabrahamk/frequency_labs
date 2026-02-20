@@ -13,8 +13,6 @@ export default function HeadphoneForm({ useCases, onEvaluate, isLoading }) {
         battery_life: '',
         latency: '',
         num_mics: 2,
-        anc_strength: 'Medium',
-        comfort_score: 'Good',
         device_type: 'Wireless Earbuds',
         water_resistance: 'IPX4',
       },

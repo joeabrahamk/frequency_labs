@@ -26,12 +26,12 @@ export default function HeadphoneCard({ headphone, onUpdate, onRemove }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="input-label">Price ($)</label>
+          <label className="input-label">Price (₹ INR)</label>
           <input
             type="number"
             min="0"
-            step="0.01"
-            placeholder="299.99"
+            step="1"
+            placeholder="2500"
             value={headphone.price}
             onChange={(e) => handleChange('price', parseFloat(e.target.value) || 0)}
             className="input-base"
@@ -124,21 +124,6 @@ export default function HeadphoneCard({ headphone, onUpdate, onRemove }) {
         </div>
 
         <div>
-          <label className="input-label">ANC Effectiveness</label>
-          <select
-            value={headphone.anc_strength}
-            onChange={(e) => handleChange('anc_strength', e.target.value)}
-            className="input-base"
-          >
-            <option value="None">None</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Very High">Very High</option>
-          </select>
-        </div>
-
-        <div>
           <label className="input-label">Water Resistance</label>
           <select
             value={headphone.water_resistance}
@@ -152,34 +137,6 @@ export default function HeadphoneCard({ headphone, onUpdate, onRemove }) {
           </select>
         </div>
 
-        <div>
-          <label className="input-label">Comfort Score</label>
-          <select
-            value={headphone.comfort_score}
-            onChange={(e) => handleChange('comfort_score', e.target.value)}
-            className="input-base"
-          >
-            <option value="Poor">Poor</option>
-            <option value="Average">Average</option>
-            <option value="Good">Good</option>
-            <option value="Excellent">Excellent</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="input-label">Sound Signature</label>
-        <select
-          value={headphone.sound_signature || 'Balanced'}
-          onChange={(e) => handleChange('sound_signature', e.target.value)}
-          className="input-base"
-        >
-          <option value="Bass-heavy">Bass-heavy</option>
-          <option value="Neutral">Neutral</option>
-          <option value="Bright">Bright</option>
-          <option value="V-shaped">V-shaped</option>
-          <option value="Balanced">Balanced</option>
-        </select>
       </div>
     </div>
   )

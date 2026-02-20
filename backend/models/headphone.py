@@ -6,8 +6,6 @@ class Headphone(BaseModel):
     battery_life: Optional[Union[float, str]]  # in hours, None for wired
     latency: Union[float, str]  # in ms
     num_mics: Union[int, str]  # number of microphones (0-16)
-    anc_strength: Union[float, str]  # score from 0 to 1 or strength label
-    comfort_score: Union[float, str]  # score from 0 to 1 or comfort label
     device_type: str  # wired, wireless, neckband, earbuds
     water_resistance: Union[float, str]  # score from 0 to 1 or IPX rating
     driver_size: Optional[Union[float, str]] = None  # driver size in mm
@@ -28,20 +26,6 @@ class Headphone(BaseModel):
         if isinstance(v, str):
             return int(v) if v else 0
         return min(16, max(0, int(v)))
-    
-    @validator('anc_strength', pre=True)
-    def convert_anc_strength(cls, v):
-        if isinstance(v, str):
-            mapping = {'None': 0.0, 'Weak': 0.25, 'Medium': 0.5, 'Strong': 0.75, 'Very Strong': 1.0}
-            return mapping.get(v, 0.5)
-        return v
-    
-    @validator('comfort_score', pre=True)
-    def convert_comfort_score(cls, v):
-        if isinstance(v, str):
-            mapping = {'Poor': 0.2, 'Fair': 0.4, 'Good': 0.6, 'Very Good': 0.8, 'Excellent': 1.0}
-            return mapping.get(v, 0.6)
-        return v
     
     @validator('water_resistance', pre=True)
     def convert_water_resistance(cls, v):

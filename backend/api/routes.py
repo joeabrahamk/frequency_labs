@@ -23,11 +23,9 @@ async def health_check():
 SPEC_RANGES = {
     'latency': (0, 200, True),      # Lower is better
     'num_mics': (0, 16, False),     # More is better
-    'anc_strength': (0, 1, False),
     'battery_life': (0, 50, False),
     'water_resistance': (0, 1, False),
-    'comfort_score': (0, 1, False),
-    'price': (0, 500, True),        # Lower is better
+    'price': (0, 20000, True),      # Lower is better (INR)
     'driver_size': (20, 50, False), # Bigger generally better
     'device_type': (0, 1, False),   # Handled by strategy
 }

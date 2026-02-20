@@ -42,9 +42,9 @@ class GamingStrategy(BaseStrategy):
         'latency': BaseStrategy.CRITICAL,        # 0.3
         'num_mics': BaseStrategy.CRITICAL,       # 0.3
         'device_type': BaseStrategy.IMPORTANT,   # 0.15 (wired bonus)
-        'anc_strength': BaseStrategy.IMPORTANT,  # 0.15
-        'driver_size': BaseStrategy.SECONDARY,   # 0.05
+        'driver_size': BaseStrategy.IMPORTANT,   # 0.15
         'battery_life': BaseStrategy.SECONDARY,  # 0.05
+        'price': BaseStrategy.SECONDARY,         # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -89,11 +89,10 @@ class GymStrategy(BaseStrategy):
     
     weights = {
         'water_resistance': BaseStrategy.CRITICAL,  # 0.3
-        'device_type': BaseStrategy.CRITICAL,       # 0.3 (wireless preference)
-        'anc_strength': BaseStrategy.IMPORTANT,     # 0.15
-        'comfort_score': BaseStrategy.IMPORTANT,    # 0.15
-        'battery_life': BaseStrategy.SECONDARY,     # 0.05
-        'latency': BaseStrategy.SECONDARY * 0.2,    # 0.01 (almost irrelevant)
+        'device_type': BaseStrategy.CRITICAL,       # 0.3
+        'battery_life': BaseStrategy.CRITICAL,      # 0.3
+        'latency': BaseStrategy.SECONDARY,          # 0.05
+        'driver_size': BaseStrategy.SECONDARY,      # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -127,9 +126,10 @@ class WorkCallsStrategy(BaseStrategy):
     weights = {
         'num_mics': BaseStrategy.CRITICAL * 1.5,    # 0.45 (dominant)
         'latency': BaseStrategy.IMPORTANT,          # 0.15
-        'anc_strength': BaseStrategy.SECONDARY,     # 0.05
-        'battery_life': BaseStrategy.SECONDARY,     # 0.05
-        'comfort_score': BaseStrategy.IMPORTANT,    # 0.15
+        'battery_life': BaseStrategy.IMPORTANT,     # 0.15
+        'driver_size': BaseStrategy.IMPORTANT,      # 0.15
+        'water_resistance': BaseStrategy.SECONDARY, # 0.05
+        'price': BaseStrategy.SECONDARY,            # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -159,11 +159,11 @@ class TravelStrategy(BaseStrategy):
     
     weights = {
         'battery_life': BaseStrategy.CRITICAL,      # 0.3
-        'anc_strength': BaseStrategy.CRITICAL,      # 0.3
-        'device_type': BaseStrategy.IMPORTANT,      # 0.15 (wireless preference)
-        'comfort_score': BaseStrategy.IMPORTANT,    # 0.15
-        'water_resistance': BaseStrategy.SECONDARY, # 0.05
-        'driver_size': BaseStrategy.SECONDARY,      # 0.05
+        'device_type': BaseStrategy.CRITICAL,       # 0.3 (wireless preference)
+        'water_resistance': BaseStrategy.IMPORTANT, # 0.15
+        'driver_size': BaseStrategy.IMPORTANT,      # 0.15
+        'num_mics': BaseStrategy.SECONDARY,         # 0.05
+        'price': BaseStrategy.SECONDARY,            # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -175,11 +175,6 @@ class TravelStrategy(BaseStrategy):
             adjusted['device_type'] = 1.0
         else:
             adjusted['device_type'] = 0.5
-        
-        # ANC: High multiplier for strong ANC
-        anc = raw_specs.get('anc_strength', 0)
-        if anc >= 0.7:  # Strong/Very Strong
-            adjusted['anc_strength'] = min(1.0, adjusted.get('anc_strength', 0) * 1.2)
         
         return adjusted
 
@@ -195,24 +190,25 @@ class CasualMusicStrategy(BaseStrategy):
     weights = {
         'price': BaseStrategy.CRITICAL,             # 0.3 (inverse - lower is better)
         'battery_life': BaseStrategy.CRITICAL,      # 0.3
-        'comfort_score': BaseStrategy.IMPORTANT,    # 0.15
         'driver_size': BaseStrategy.IMPORTANT,      # 0.15
-        'anc_strength': BaseStrategy.SECONDARY,     # 0.05
+        'water_resistance': BaseStrategy.IMPORTANT, # 0.15
+        'device_type': BaseStrategy.SECONDARY,      # 0.05
+        'num_mics': BaseStrategy.SECONDARY,         # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
         adjusted = normalized_scores.copy()
         
-        # Price: Strong cost sensitivity
+        # Price: Strong cost sensitivity (INR)
         price = raw_specs.get('price', 0)
-        if price <= 50:
+        if price <= 5000:
             adjusted['price'] = 1.0
-        elif price <= 100:
+        elif price <= 10000:
             adjusted['price'] = 0.8
-        elif price <= 200:
+        elif price <= 20000:
             adjusted['price'] = 0.5
         else:
-            adjusted['price'] = 0.2
+            adjusted['price'] = 0.1
         
         return adjusted
 
