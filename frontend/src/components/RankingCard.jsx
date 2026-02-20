@@ -112,19 +112,13 @@ export default function RankingCard({
               .map(([criterion, value]) => {
                 const contribution = Math.round(value * 100)
                 const isPrice = criterion === 'price'
-                const weightBadge = getWeightBadge(criterion)
                 return (
                   <div key={criterion}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-neutral-600 capitalize">
-                          {criterion.replace(/_/g, ' ')}
-                          {isPrice && <span className="text-neutral-400 ml-1">(lower is better)</span>}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded border ${weightBadge.classes}`}>
-                          {weightBadge.label}
-                        </span>
-                      </div>
+                      <span className="text-xs text-neutral-600 capitalize">
+                        {criterion.replace(/_/g, ' ')}
+                        {isPrice && <span className="text-neutral-400 ml-1">(lower is better)</span>}
+                      </span>
                       <span className="text-xs font-semibold text-neutral-900">
                         {contribution}%
                       </span>

@@ -1,4 +1,4 @@
-1. How I Started
+## 1. How I Started
 
 I began by reflecting on the last time I personally struggled with a real-world decision. Initially, I thought about purchasing a laptop, since it was also suggested in the assignment examples. However, I realized that when I bought my laptop, I had access to multiple comparison platforms that helped evaluate specifications side by side.
 
@@ -12,9 +12,7 @@ Instead of building a generic product comparison tool, I decided to build a cont
 
 That shift from “spec comparison” to “context-driven decision modeling” became the foundation of the system.
 
-```
-
-2. How My Thinking Evolved
+## 2. How My Thinking Evolved
 
 While modeling early scoring logic, I realized that real-world decisions are not spec-centric, they are context-centric.
 
@@ -40,15 +38,16 @@ Context-aware interpretation of specifications.
 
 This change made the system more realistic and aligned with how humans actually evaluate products.
 
-3. Alternative Approaches Considered
-1. Pure Weighted Average Model
+## 3. Alternative Approaches Considered
+
+# 1. Pure Weighted Average Model
 
 I initially considered a single universal weighted scoring engine where use cases only modified weights.
 
 Reason rejected:
 This approach did not allow behavior-specific scoring (e.g., severe latency penalties in gaming). It felt too simplistic.
 
-2. Machine Learning-Based Ranking
+# 2. Machine Learning-Based Ranking
 
 I briefly considered training or simulating a model to rank devices dynamically.
 
@@ -62,7 +61,7 @@ Violates requirement of deterministic logic.
 
 Over-engineered for the scope of the assignment.
 
-3. AI-Driven Scoring
+# 3. AI-Driven Scoring
 
 I explored allowing AI to directly score headphones based on user input.
 
@@ -78,7 +77,7 @@ Makes system untestable and non-reproducible.
 
 Instead, AI was limited to optional intent classification only.
 
-4. Single Combined Weight Profile for Multiple Use Cases
+# 4. Single Combined Weight Profile for Multiple Use Cases
 
 For blended use cases (e.g., 70% gaming + 30% travel), I initially merged weight tables first.
 
@@ -90,7 +89,8 @@ Compute individual use case scores independently and blend the final scores.
 
 This preserved strategy-specific behavior.
 
-4. Refactoring Decisions
+## 4. Refactoring Decisions
+
 Refactoring 1: Separating Normalization from Strategy Logic
 
 Initially, normalization and scoring logic were tightly coupled.
@@ -131,8 +131,9 @@ Produces an independent score.
 
 This significantly improved readability and extensibility.
 
-5. Mistakes and Corrections
-Mistake 1: Overcomplicating Scoring Adjustments
+## 5. Mistakes and Corrections
+
+# Mistake 1: Overcomplicating Scoring Adjustments
 
 I initially stacked multiple multipliers per criterion, which caused unstable scoring behavior.
 
@@ -141,14 +142,14 @@ Restricted each use case to one primary adjustment per prioritized specification
 
 This kept the model interpretable.
 
-Mistake 2: Conflating Technology Type with Performance Strength
+# Mistake 2: Conflating Technology Type with Performance Strength
 
 I initially treated ANC type (Hybrid, Adaptive, etc.) as a strength metric.
 
 Correction:
 Separated ANC type from ANC effectiveness score to maintain clarity.
 
-Mistake 3: Letting AI Influence Scoring Logic
+# Mistake 3: Letting AI Influence Scoring Logic
 
 In early drafts, I considered allowing AI to modify weight values directly.
 
@@ -157,16 +158,18 @@ Restricted AI to classification only. Scoring remains fully deterministic.
 
 This preserved explainability.
 
-Mistake 4: Backend Timeout on Free Tier Deployment
+# Mistake 4: Backend Timeout on Free Tier Deployment
 
 When deploying on Render's free tier, the backend would spin down after 15 minutes of inactivity, causing 500 errors for users.
 
 Initial approach considered:
+
 - Upgrading to paid tier (expensive)
 - Switching to a different platform
 
 Correction:
 Implemented a keep-alive ping mechanism on the frontend:
+
 - Frontend pings the backend health check endpoint immediately on page load
 - Pings are sent every 5 minutes while users are on the site
 - Pings fail silently (errors are logged but not displayed to users)
@@ -174,7 +177,41 @@ Implemented a keep-alive ping mechanism on the frontend:
 
 This solved the cold-start problem without additional cost or platform migration.
 
-6. What Changed During Development and Why
+# Mistake 5: Price Weight Too Low to Be Meaningful
+
+Initially, price was weighted only at 0.05 (SECONDARY) across all strategies, making the price difference between headphones negligible in final scores.
+
+Test case: ₹800 vs ₹2000 headphones showed only ~3% score difference despite 2.5x price difference.
+
+Correction:
+
+- Increased price weight to 0.15 (IMPORTANT) in Gaming, WorkCalls, and Travel strategies
+- CasualMusicStrategy already had 0.3 (CRITICAL) weight on price
+- Now ₹800 headphone gets 0.96 normalized score vs ₹2000 gets 0.90, making price sensitivity visible
+- Updated frontend breakdown to show weight importance badges (Critical/Important/Secondary)
+
+This ensures price differences are reflected appropriately in rankings while being balanced with other specifications.
+
+# Mistake 6: Subjective/Unmeasurable Specifications
+
+Initially included Sound Signature, Comfort Score, and ANC Effectiveness as scoring criteria.
+
+Problem:
+
+- These are subjective and difficult for users to quantify accurately
+- No standardized way to measure comfort objectively
+- Sound signature varies by personal preference
+
+Correction:
+
+- Removed Sound Signature, Comfort Score, and ANC Effectiveness fields entirely
+- Retained objective specs: latency, battery life, num_mics, water resistance, driver size, device type, price
+- Simplified the decision model to focus on measurable factors
+- Updated all UI components and backend validation to exclude these fields
+
+This improved system reliability and user experience by removing ambiguous inputs.
+
+## 6. What Changed During Development and Why
 
 Shift from spec-first scoring to use-case-first strategy design.
 Reason: Better alignment with real-world decision behavior.
@@ -188,7 +225,19 @@ Reason: Improve clarity and future extensibility.
 Limited AI scope.
 Reason: Maintain transparency and reproducibility.
 
-7. Final Architecture Philosophy
+Removed subjective specification fields (Sound Signature, Comfort Score, ANC Effectiveness).
+Reason: These are hard to quantify accurately; replaced with objective, measurable specs.
+
+Increased price weight in scoring strategies.
+Reason: Ensure price differences are reflected meaningfully in rankings while being balanced with performance specs.
+
+Introduced dual ranking system (Performance + Value rankings).
+Reason: Previously, ranking was based only on performance score, which didn't account for price fairness. A headphone with 46 points at ₹21,000 would rank higher than one with 43 points at ₹6,000, despite the second being much better value. Value score (performance_score / price) now shows best performance-per-rupee, allowing users to see both best absolute performance and best value for money.
+
+Localized pricing from USD to INR.
+Reason: Simplified for Indian market evaluation.
+
+## 7. Final Architecture Philosophy
 
 The final system reflects three principles:
 
@@ -199,4 +248,3 @@ Context-aware strategy modeling.
 Transparent explanation generation.
 
 The system evolved from a generic comparison tool into a structured decision companion that models contextual trade-offs explicitly.
-```
