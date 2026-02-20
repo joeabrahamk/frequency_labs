@@ -10,12 +10,12 @@
 
 **Initial Approach**: Only normalize specs that are in each strategy's weights.
 
-- Gaming would only see: latency, num_mics, device_type, anc_strength, driver_size, battery_life
-- Gym would only see: water_resistance, device_type, anc_strength, comfort_score, battery_life, latency
+- Gaming would only see: latency, num_mics, device_type, driver_size, battery_life, price
+- Gym would only see: water_resistance, device_type, battery_life, latency, driver_size
 - Complete isolation between use cases
 
 **The Problem**:
-"What if a headphone has perfect gaming specs but costs $1 million? The whole decision-making collapses."
+"What if a headphone has perfect gaming specs but costs ₹1,000,000? The whole decision-making collapses."
 
 Even if price isn't weighted for gaming, the strategy should be able to see it and make informed adjustments.
 
@@ -37,17 +37,17 @@ for spec, weight in strategy.weights.items():
 **Why This Works**:
 
 1. **Flexibility**: Strategies can make contextual decisions based on ANY spec
-   - Gaming could penalize if price > $500 even though price isn't weighted
-   - Travel could boost comfort for long battery life devices
+   - Gaming could penalize if price > ₹15,000 even though price isn't weighted
+   - Travel could boost for long battery life devices
    - Gym could check driver size for durability context
 
 2. **Clean Scoring**: Only explicitly weighted specs affect the final score
-   - Gaming score = 0.3×latency + 0.3×mics + 0.15×device + 0.15×anc + 0.05×driver + 0.05×battery
+   - Gaming score = 0.3×latency + 0.3×mics + 0.15×device + 0.15×driver + 0.05×battery + 0.05×price
    - No accidental contamination from non-weighted specs
 
 3. **Real-World Decision Making**: Mimics how humans evaluate
-   - "This is perfect for gaming, but it's $2000... maybe reduce the overall appeal"
-   - "Battery life is great for travel, and it's also comfortable - boost comfort score"
+   - "This is perfect for gaming, but it's ₹20,000... maybe reduce the overall appeal"
+   - "Battery life is great for travel, so boost the overall appeal"
 
 **Example Use Case**:
 
@@ -66,7 +66,7 @@ class GamingStrategy:
         price = raw_specs.get('price', 0)
 
         # If too expensive, penalize latency contribution
-        if price > 500:
+        if price > 15000:
             adjusted['latency'] *= 0.8  # 20% penalty
 
         return adjusted

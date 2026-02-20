@@ -137,16 +137,27 @@ async def evaluate(request: UserRequest):
         # Round contributions
         all_contributions = {k: round(v, 4) for k, v in all_contributions.items()}
         
+        # Calculate value score (performance per rupee)
+        price = headphone.get('price', 1)
+        if price <= 0:
+            price = 1  # Avoid division by zero
+        value_score = (final_score / price) * 10000  # Scale up for readability
+        
         ranked.append({
             "model": headphone.get('name') or f"Headphone {idx + 1}",
             "score": round(final_score, 3),
+            "value_score": round(value_score, 3),
+            "price": price,
             "contributions": all_contributions,
             "use_case_scores": use_case_scores,
             "details": headphone
         })
     
-    # Sort by score descending
+    # Sort by performance score descending
     ranked.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Create value-ranked list
+    value_ranked = sorted(ranked, key=lambda x: x['value_score'], reverse=True)
     
     # Build explanation
     use_case_names = [uc.name.replace('_', ' ').title() for uc in request.use_cases]
@@ -155,10 +166,11 @@ async def evaluate(request: UserRequest):
     
     return {
         "ranked_headphones": ranked,
+        "value_ranked_headphones": value_ranked,
         "explanation": {
             "reasoning": f"Headphones ranked for: {', '.join(use_case_percentages)}. "
-                        f"Each use case scored independently using strategy-based weighting, "
-                        f"then blended by your percentages. Higher scores indicate better fit."
+                        f"Performance ranking shows best specs for your use cases. "
+                        f"Value ranking shows best performance per rupee spent."
         }
     }
 

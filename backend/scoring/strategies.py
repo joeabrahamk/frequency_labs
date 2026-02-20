@@ -43,8 +43,7 @@ class GamingStrategy(BaseStrategy):
         'num_mics': BaseStrategy.CRITICAL,       # 0.3
         'device_type': BaseStrategy.IMPORTANT,   # 0.15 (wired bonus)
         'driver_size': BaseStrategy.IMPORTANT,   # 0.15
-        'battery_life': BaseStrategy.SECONDARY,  # 0.05
-        'price': BaseStrategy.SECONDARY,         # 0.05
+        'price': BaseStrategy.IMPORTANT,         # 0.15 (value for money)
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -91,8 +90,9 @@ class GymStrategy(BaseStrategy):
         'water_resistance': BaseStrategy.CRITICAL,  # 0.3
         'device_type': BaseStrategy.CRITICAL,       # 0.3
         'battery_life': BaseStrategy.CRITICAL,      # 0.3
-        'latency': BaseStrategy.SECONDARY,          # 0.05
-        'driver_size': BaseStrategy.SECONDARY,      # 0.05
+        'price': BaseStrategy.SECONDARY,            # 0.05
+        'latency': BaseStrategy.SECONDARY,          # 0.025
+        'driver_size': BaseStrategy.SECONDARY,      # 0.025
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -127,9 +127,9 @@ class WorkCallsStrategy(BaseStrategy):
         'num_mics': BaseStrategy.CRITICAL * 1.5,    # 0.45 (dominant)
         'latency': BaseStrategy.IMPORTANT,          # 0.15
         'battery_life': BaseStrategy.IMPORTANT,     # 0.15
-        'driver_size': BaseStrategy.IMPORTANT,      # 0.15
+        'price': BaseStrategy.IMPORTANT,            # 0.15 (value matters)
+        'driver_size': BaseStrategy.SECONDARY,      # 0.05
         'water_resistance': BaseStrategy.SECONDARY, # 0.05
-        'price': BaseStrategy.SECONDARY,            # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -161,9 +161,9 @@ class TravelStrategy(BaseStrategy):
         'battery_life': BaseStrategy.CRITICAL,      # 0.3
         'device_type': BaseStrategy.CRITICAL,       # 0.3 (wireless preference)
         'water_resistance': BaseStrategy.IMPORTANT, # 0.15
-        'driver_size': BaseStrategy.IMPORTANT,      # 0.15
+        'price': BaseStrategy.IMPORTANT,            # 0.15 (budget-conscious travelers)
+        'driver_size': BaseStrategy.SECONDARY,      # 0.05
         'num_mics': BaseStrategy.SECONDARY,         # 0.05
-        'price': BaseStrategy.SECONDARY,            # 0.05
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -199,16 +199,9 @@ class CasualMusicStrategy(BaseStrategy):
     def adjust_scores(self, normalized_scores, raw_specs):
         adjusted = normalized_scores.copy()
         
-        # Price: Strong cost sensitivity (INR)
-        price = raw_specs.get('price', 0)
-        if price <= 5000:
-            adjusted['price'] = 1.0
-        elif price <= 10000:
-            adjusted['price'] = 0.8
-        elif price <= 20000:
-            adjusted['price'] = 0.5
-        else:
-            adjusted['price'] = 0.1
+        # Price: Use normalized score for finer granularity
+        # Already normalized with inverse (cheaper = higher score)
+        # No override needed - normalized price already reflects value
         
         return adjusted
 
