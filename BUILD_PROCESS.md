@@ -1,0 +1,202 @@
+1. How I Started
+
+I began by reflecting on the last time I personally struggled with a real-world decision. Initially, I thought about purchasing a laptop, since it was also suggested in the assignment examples. However, I realized that when I bought my laptop, I had access to multiple comparison platforms that helped evaluate specifications side by side.
+
+That made me question whether I had recently faced a decision problem where structured help was not easily available.
+
+I then recalled purchasing earbuds. During that process, I searched across multiple websites trying to compare specifications, use cases, and trade-offs in a structured way. Unlike laptops, I did not find a clear, context-aware comparison system that helped me decide based on how I intended to use the device. Most platforms either focused on raw specifications or generic reviews, without aligning features with user-specific needs like gaming, gym usage, work calls, or travel.
+
+This realization shaped the direction of the project.
+
+Instead of building a generic product comparison tool, I decided to build a context-aware decision companion for headphones. The goal was not to compare specs in isolation, but to model how different use cases influence the importance of each specification.
+
+That shift from “spec comparison” to “context-driven decision modeling” became the foundation of the system.
+
+```
+
+2. How My Thinking Evolved
+
+While modeling early scoring logic, I realized that real-world decisions are not spec-centric, they are context-centric.
+
+For example:
+
+Latency is critical for gaming but nearly irrelevant for gym usage.
+
+Water resistance is essential for gym but unnecessary for office work.
+
+Wired vs wireless preference depends entirely on context.
+
+This led me to shift from a "spec-driven scoring system" to a "use-case-driven strategy system."
+
+Instead of applying one global scoring formula, I introduced distinct scoring strategies for each use case.
+
+Each use case now defines:
+
+A weight profile.
+
+Optional scoring adjustments (e.g., stronger penalty for high latency in gaming).
+
+Context-aware interpretation of specifications.
+
+This change made the system more realistic and aligned with how humans actually evaluate products.
+
+3. Alternative Approaches Considered
+1. Pure Weighted Average Model
+
+I initially considered a single universal weighted scoring engine where use cases only modified weights.
+
+Reason rejected:
+This approach did not allow behavior-specific scoring (e.g., severe latency penalties in gaming). It felt too simplistic.
+
+2. Machine Learning-Based Ranking
+
+I briefly considered training or simulating a model to rank devices dynamically.
+
+Reason rejected:
+
+Black-box behavior.
+
+Lack of explainability.
+
+Violates requirement of deterministic logic.
+
+Over-engineered for the scope of the assignment.
+
+3. AI-Driven Scoring
+
+I explored allowing AI to directly score headphones based on user input.
+
+Reason rejected:
+
+Non-deterministic.
+
+Hard to justify.
+
+Not transparent.
+
+Makes system untestable and non-reproducible.
+
+Instead, AI was limited to optional intent classification only.
+
+4. Single Combined Weight Profile for Multiple Use Cases
+
+For blended use cases (e.g., 70% gaming + 30% travel), I initially merged weight tables first.
+
+Reason rejected:
+Merging weight tables before scoring flattened behavioral differences between strategies.
+
+Final approach:
+Compute individual use case scores independently and blend the final scores.
+
+This preserved strategy-specific behavior.
+
+4. Refactoring Decisions
+Refactoring 1: Separating Normalization from Strategy Logic
+
+Initially, normalization and scoring logic were tightly coupled.
+
+I refactored to:
+
+Create a dedicated normalization module.
+
+Keep scoring strategies separate.
+
+This improved modularity and made the system easier to extend.
+
+Refactoring 2: Isolating Explanation Engine
+
+The explanation logic was initially embedded inside the ranking module.
+
+I separated it into a distinct explanation engine that:
+
+Calculates per-criterion contributions.
+
+Generates structured reasoning objects.
+
+Remains independent from API routing.
+
+This improved clarity and maintainability.
+
+Refactoring 3: Strategy Pattern for Use Cases
+
+Instead of condition-heavy if/else logic for use cases, I refactored to a strategy-based design.
+
+Each use case now:
+
+Defines its own weight profile.
+
+Applies context-aware scoring adjustments.
+
+Produces an independent score.
+
+This significantly improved readability and extensibility.
+
+5. Mistakes and Corrections
+Mistake 1: Overcomplicating Scoring Adjustments
+
+I initially stacked multiple multipliers per criterion, which caused unstable scoring behavior.
+
+Correction:
+Restricted each use case to one primary adjustment per prioritized specification.
+
+This kept the model interpretable.
+
+Mistake 2: Conflating Technology Type with Performance Strength
+
+I initially treated ANC type (Hybrid, Adaptive, etc.) as a strength metric.
+
+Correction:
+Separated ANC type from ANC effectiveness score to maintain clarity.
+
+Mistake 3: Letting AI Influence Scoring Logic
+
+In early drafts, I considered allowing AI to modify weight values directly.
+
+Correction:
+Restricted AI to classification only. Scoring remains fully deterministic.
+
+This preserved explainability.
+
+Mistake 4: Backend Timeout on Free Tier Deployment
+
+When deploying on Render's free tier, the backend would spin down after 15 minutes of inactivity, causing 500 errors for users.
+
+Initial approach considered:
+- Upgrading to paid tier (expensive)
+- Switching to a different platform
+
+Correction:
+Implemented a keep-alive ping mechanism on the frontend:
+- Frontend pings the backend health check endpoint immediately on page load
+- Pings are sent every 5 minutes while users are on the site
+- Pings fail silently (errors are logged but not displayed to users)
+- Backend has a simple health check endpoint that returns `{"status": "ok"}`
+
+This solved the cold-start problem without additional cost or platform migration.
+
+6. What Changed During Development and Why
+
+Shift from spec-first scoring to use-case-first strategy design.
+Reason: Better alignment with real-world decision behavior.
+
+Shift from merged weight blending to independent use case scoring.
+Reason: Preserve behavioral uniqueness of strategies.
+
+Strengthened modularity.
+Reason: Improve clarity and future extensibility.
+
+Limited AI scope.
+Reason: Maintain transparency and reproducibility.
+
+7. Final Architecture Philosophy
+
+The final system reflects three principles:
+
+Deterministic scoring.
+
+Context-aware strategy modeling.
+
+Transparent explanation generation.
+
+The system evolved from a generic comparison tool into a structured decision companion that models contextual trade-offs explicitly.
+```
