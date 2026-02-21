@@ -53,7 +53,7 @@ export default function RankingCard({
 
       {/* Headphone Name & Price */}
       <div className="px-6 pt-3 pb-4">
-        <h3 className="text-xl font-bold text-neutral-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+        <h3 className="text-xl font-bold text-neutral-900 mb-2 line-clamp-2 min-h-14">
           {headphone.model || headphone.details?.name || `Headphone ${rank}`}
         </h3>
         <p className="text-sm font-medium text-neutral-600">
