@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import bgimg from '../assets/applle.png'
+import bgimg from '../assets/applee.webp'
 
 export default function HeroSection({ onStartClick }) {
   return (
@@ -29,7 +29,7 @@ export default function HeroSection({ onStartClick }) {
         {/* CTA Button */}
         <button
           onClick={onStartClick}
-          className="group inline-flex items-center gap-2 px-8 py-3 bg-black/80 text-white text-base font-medium rounded-md hover:bg-black/90 transition-colors duration-200"
+          className="group inline-flex items-center gap-2 px-8 py-3 bg-black text-white text-base font-medium rounded-md hover:bg-black/90 transition-colors duration-200"
         >
           <span>Start Evaluation</span>
           <svg 
