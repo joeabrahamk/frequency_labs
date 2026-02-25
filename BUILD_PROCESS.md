@@ -211,6 +211,54 @@ Correction:
 
 This improved system reliability and user experience by removing ambiguous inputs.
 
+# Mistake 7: Driver Size Normalization Ignoring Device Type Context
+
+Initially used a single normalization range (20-50mm) for all driver sizes, regardless of device type.
+
+Problem:
+
+- Over-ear headphones use 30-53mm drivers (standard: 40mm)
+- Earbuds use 6-15mm drivers (standard: 10-12mm)
+- Comparing a 12mm earbud driver to a 40mm over-ear driver using the same scale unfairly penalized earbuds
+- A 12mm driver is excellent for earbuds but would score poorly on a 20-50mm scale
+
+Correction:
+
+- Implemented context-aware driver size normalization based on device type
+- Earbuds/Neckband: normalized within 6-15mm range
+- Over-ear/Wireless/Wired: normalized within 30-53mm range
+- Each device type now normalized within its appropriate physical constraints
+- A 12mm earbud (67% of its range) is now comparable to a 40mm over-ear (43% of its range)
+
+This ensures fair comparison between fundamentally different headphone form factors.
+
+# Mistake 8: Wired Devices Penalized for Battery and Latency
+
+Initially, wired headphones received neutral scores (0.5) for battery life (null value) and were normalized like wireless devices for latency.
+
+Problem:
+
+- Wired headphones have **zero latency** by design - they should get perfect latency score
+- Wired headphones don't need batteries (always powered) - null battery shouldn't be a penalty
+- Receiving 0.5 for latency when wired devices have inherent advantage was unfair
+- Battery being null was treated as "missing data" rather than "not applicable"
+
+Correction:
+
+- **Latency for wired:** Automatically assigned 1.0 (perfect score) since wired = zero latency
+- **Battery for wired:** Assigned 0.75 (slightly positive) since no battery means always-on reliability
+- Updated normalization logic to detect `device_type: 'wired'` and apply special handling
+- All strategies now include all 7 specs in weight distribution (even if some have very low weights)
+
+Example impact:
+
+- Before: Wired gaming headphone gets 0.5 latency score
+- After: Wired gaming headphone gets 1.0 latency score (perfect)
+- Before: Gym strategy penalizes wired heavily on battery (0.5 × 0.3 weight = 0.15 contribution)
+- After: Gym strategy still penalizes wired on device_type (0.1 × 0.3 = 0.03), but battery gets 0.75 × 0.3 = 0.225
+
+This ensures wired devices are evaluated fairly based on their actual characteristics.
+
 ## 6. What Changed During Development and Why
 
 Shift from spec-first scoring to use-case-first strategy design.

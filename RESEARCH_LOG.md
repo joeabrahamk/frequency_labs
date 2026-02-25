@@ -191,6 +191,7 @@ Ask me doubts for better result"
 - minimal ui inspiration website
 - apple website layout inspiration
 - Design for details card Pinterest
+- Driver size in over ear headphones vs earbuds
 
 ## References Checked
 

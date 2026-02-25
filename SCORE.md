@@ -23,14 +23,16 @@ All specifications are normalized to a 0-1 scale before scoring, where:
 
 ### Weight Distribution
 
-| Specification | Weight   | Importance | Notes                                            |
-| ------------- | -------- | ---------- | ------------------------------------------------ |
-| Latency       | 0.3      | Critical   | Lower latency = better for real-time gameplay    |
-| Num Mics      | 0.3      | Critical   | More mics = clearer communication with teammates |
-| Device Type   | 0.15     | Important  | Wired gets bonus (1.3x multiplier)               |
-| Driver Size   | 0.15     | Important  | Larger drivers for better audio clarity          |
-| Price         | 0.15     | Important  | Value consideration for budget gamers            |
-| **Total**     | **1.05** | —          | —                                                |
+| Specification    | Weight  | Importance | Notes                                            |
+| ---------------- | ------- | ---------- | ------------------------------------------------ |
+| Latency          | 0.3     | Critical   | Lower latency = better for real-time gameplay    |
+| Num Mics         | 0.3     | Critical   | More mics = clearer communication with teammates |
+| Device Type      | 0.15    | Important  | Wired gets bonus (1.3x multiplier)               |
+| Driver Size      | 0.15    | Important  | Larger drivers for better audio clarity          |
+| Price            | 0.05    | Secondary  | Value consideration for budget gamers            |
+| Battery Life     | 0.025   | Secondary  | Minor impact (wired gets 0.75 auto)              |
+| Water Resistance | 0.025   | Secondary  | Minor impact                                     |
+| **Total**        | **1.0** | —          | —                                                |
 
 ### Scoring Techniques
 
@@ -64,8 +66,9 @@ All specifications are normalized to a 0-1 scale before scoring, where:
 | Device Type      | 0.3     | Critical   | Wireless preferred for mobility          |
 | Battery Life     | 0.3     | Critical   | Long sessions need sustained power       |
 | Price            | 0.05    | Secondary  | Less critical for gym users              |
-| Latency          | 0.025   | Secondary  | Minor impact                             |
-| Driver Size      | 0.025   | Secondary  | Minor impact                             |
+| Num Mics         | 0.025   | Secondary  | Calls less important                     |
+| Latency          | 0.0125  | Secondary  | Minor impact                             |
+| Driver Size      | 0.0125  | Secondary  | Minor impact                             |
 | **Total**        | **1.0** | —          | —                                        |
 
 ### Scoring Techniques
@@ -179,6 +182,31 @@ Clamp to [0, 1]
 - Min: ₹0
 - Max: ₹20,000
 - Example: ₹800 → (800-0)/(20000-0) = 0.04 → inverted = 0.96 (96%)
+
+**Driver Size Normalization (Context-Aware):**
+
+Driver size is normalized differently based on device type because earbuds and over-ear headphones use completely different driver size ranges:
+
+- **Earbuds/Neckband:** 6mm - 15mm
+  - 6mm earbuds → (6-6)/(15-6) = 0.0 (0%)
+  - 12mm earbuds → (12-6)/(15-6) = 0.67 (67%)
+  - 15mm earbuds → (15-6)/(15-6) = 1.0 (100%)
+
+- **Over-ear/Wireless/Wired:** 30mm - 53mm
+  - 30mm headphones → (30-30)/(53-30) = 0.0 (0%)
+  - 40mm headphones → (40-30)/(53-30) = 0.43 (43%)
+  - 50mm headphones → (50-30)/(53-30) = 0.87 (87%)
+
+This ensures fair comparison: a 12mm earbud driver (excellent for earbuds) won't be penalized when compared to a 40mm over-ear driver (standard for headphones). Each device type is normalized within its appropriate range.
+
+**Wired Device Special Handling:**
+
+Wired headphones have unique characteristics that require special normalization:
+
+- **Latency:** Wired devices always get **1.0 (perfect score)** because they have zero latency by design
+- **Battery Life:** Wired devices get **0.75** instead of treating null as 0.5, because "always-on" is a slight advantage over "needs charging"
+
+This prevents wired headphones from being unfairly penalized for specs that don't apply to them.
 
 ---
 

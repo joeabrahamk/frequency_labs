@@ -26,13 +26,23 @@ SPEC_RANGES = {
     'battery_life': (0, 50, False),
     'water_resistance': (0, 1, False),
     'price': (0, 20000, True),      # Lower is better (INR)
-    'driver_size': (20, 50, False), # Bigger generally better
     'device_type': (0, 1, False),   # Handled by strategy
+}
+
+# Driver size ranges by device type
+DRIVER_SIZE_RANGES = {
+    'earbuds': (6, 15),       # Earbuds: 6mm-15mm
+    'over-ear': (30, 53),     # Over-ear: 30mm-53mm
+    'wireless': (30, 53),     # Wireless (typically over-ear): 30mm-53mm
+    'wired': (30, 53),        # Wired (typically over-ear): 30mm-53mm
+    'neckband': (6, 15),      # Neckband (earbud-style): 6mm-15mm
 }
 
 def normalize_specs(headphone_dict):
     """Normalize all specs to 0-1 range"""
     normalized = {}
+    device_type = headphone_dict.get('device_type', '').lower()
+    is_wired = 'wired' in device_type
     
     for spec, (min_val, max_val, inverse) in SPEC_RANGES.items():
         value = headphone_dict.get(spec)
@@ -41,6 +51,17 @@ def normalize_specs(headphone_dict):
         if spec == 'device_type':
             normalized[spec] = 0.5  # Neutral default
             continue
+        
+        # Special handling for wired devices
+        if is_wired:
+            if spec == 'latency':
+                # Wired headphones have zero latency - perfect score
+                normalized[spec] = 1.0
+                continue
+            elif spec == 'battery_life':
+                # Wired headphones don't need battery - neutral score (not a penalty)
+                normalized[spec] = 0.75  # Slightly positive since no battery means always-on
+                continue
         
         if value is None:
             normalized[spec] = 0.5
@@ -58,6 +79,23 @@ def normalize_specs(headphone_dict):
             norm_value = 1 - norm_value
             
         normalized[spec] = norm_value
+    
+    # Handle driver_size separately based on device_type
+    driver_size = headphone_dict.get('driver_size')
+    device_type = headphone_dict.get('device_type', '').lower()
+    
+    if driver_size is not None:
+        # Get appropriate range for this device type
+        min_driver, max_driver = DRIVER_SIZE_RANGES.get(device_type, (20, 50))
+        
+        # Normalize within appropriate range
+        if max_driver == min_driver:
+            normalized['driver_size'] = 0.5
+        else:
+            norm_value = (driver_size - min_driver) / (max_driver - min_driver)
+            normalized['driver_size'] = max(0, min(1, norm_value))
+    else:
+        normalized['driver_size'] = 0.5
     
     return normalized
 

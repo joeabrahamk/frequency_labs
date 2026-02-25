@@ -34,8 +34,8 @@ class GamingStrategy(BaseStrategy):
     """
     Gaming Use Case
     Critical: Low latency, good mics
-    Important: Wired preference, ANC, driver size
-    Secondary: Battery life
+    Important: Wired preference, driver size, price
+    Secondary: Battery life, water resistance
     """
     
     weights = {
@@ -43,7 +43,9 @@ class GamingStrategy(BaseStrategy):
         'num_mics': BaseStrategy.CRITICAL,       # 0.3
         'device_type': BaseStrategy.IMPORTANT,   # 0.15 (wired bonus)
         'driver_size': BaseStrategy.IMPORTANT,   # 0.15
-        'price': BaseStrategy.IMPORTANT,         # 0.15 (value for money)
+        'price': BaseStrategy.SECONDARY,         # 0.05 (value for money)
+        'battery_life': BaseStrategy.SECONDARY,  # 0.025
+        'water_resistance': BaseStrategy.SECONDARY, # 0.025
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
@@ -80,8 +82,7 @@ class GamingStrategy(BaseStrategy):
 class GymStrategy(BaseStrategy):
     """
     Gym Use Case
-    Critical: Water resistance, wireless
-    Important: ANC
+    Critical: Water resistance, wireless, battery life
     Secondary: Everything else
     Penalty: Wired devices
     """
@@ -91,8 +92,9 @@ class GymStrategy(BaseStrategy):
         'device_type': BaseStrategy.CRITICAL,       # 0.3
         'battery_life': BaseStrategy.CRITICAL,      # 0.3
         'price': BaseStrategy.SECONDARY,            # 0.05
-        'latency': BaseStrategy.SECONDARY,          # 0.025
-        'driver_size': BaseStrategy.SECONDARY,      # 0.025
+        'num_mics': BaseStrategy.SECONDARY / 2,     # 0.025
+        'latency': BaseStrategy.SECONDARY / 4,      # 0.0125
+        'driver_size': BaseStrategy.SECONDARY / 4,  # 0.0125
     }
     
     def adjust_scores(self, normalized_scores, raw_specs):
