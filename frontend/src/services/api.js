@@ -16,7 +16,8 @@ export async function pingBackend() {
 
 export async function evaluateDecision(payload) {
   try {
-    const response = await fetch(`${API_BASE_URL}/evaluate`, {
+    const endpoint = payload?.amazon_urls ? '/evaluate-amazon' : '/evaluate'
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

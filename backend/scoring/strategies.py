@@ -109,6 +109,13 @@ class GymStrategy(BaseStrategy):
         
         # Water resistance: IPX7+ gets multiplier
         water_res = raw_specs.get('water_resistance', 0)
+        # Ensure water_res is a number (convert from string if needed)
+        if isinstance(water_res, str):
+            # Fallback mapping for string values
+            water_res_map = {'IPX7': 0.7, 'IPX8': 0.8, 'IPX9': 0.9, 'None': 0.0}
+            water_res = water_res_map.get(water_res, 0.0)
+        water_res = float(water_res) if water_res else 0
+        
         if water_res >= 0.7:  # IPX7+
             adjusted['water_resistance'] = min(1.0, adjusted.get('water_resistance', 0) * 1.25)
         elif water_res == 0:  # None

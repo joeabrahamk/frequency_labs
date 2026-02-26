@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import HeadphoneCard from './HeadphoneCard'
 
-export default function HeadphoneForm({ useCases, onEvaluate, isLoading }) {
+export default function HeadphoneForm({ useCases, onEvaluate, isLoading, modeToggle }) {
   const [headphones, setHeadphones] = useState([])
 
   const addHeadphone = () => {
@@ -46,6 +46,7 @@ export default function HeadphoneForm({ useCases, onEvaluate, isLoading }) {
   return (
     <section className="py-20 px-6 bg-white">
       <div className="max-w-4xl mx-auto">
+        {modeToggle}
         <h2 className="text-4xl font-bold text-neutral-900 mb-4">Add Headphones</h2>
         <p className="text-lg text-neutral-600 mb-12">
           Input the specifications for each headphone model you want to compare.

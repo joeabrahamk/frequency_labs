@@ -222,9 +222,10 @@ Ask me doubts for better result"
 
 ## Modified During Development
 
-- Altered UI 
+- Altered UI
 - Initially merged weight tables before scoring; changed to independent strategy scoring per use case.
 - Initially treated ANC type as strength; separated ANC type and ANC effectiveness.
 - Initially tied mic quality directly to mic count; separated them.
 - Simplified scoring adjustments to prevent unstable outputs.
 - Added value_score after core logic stabilized.
+- Added link-based comparison (Amazon URL input) to reduce manual spec entry friction during MVP testing.

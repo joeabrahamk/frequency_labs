@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import HeroSection from './components/HeroSection'
 import UseCaseSelector from './components/UseCaseSelector'
 import HeadphoneForm from './components/HeadphoneForm'
+import AmazonUrlForm from './components/AmazonUrlForm'
 import ResultsSection from './components/ResultsSection'
 import { evaluateDecision, pingBackend } from './services/api'
 
@@ -11,6 +12,7 @@ export default function App() {
   const [results, setResults] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [inputMode, setInputMode] = useState('manual')
 
   const resultsRef = useRef(null)
 
@@ -31,6 +33,7 @@ export default function App() {
   const handleUseCasesChange = (useCases) => {
     setSelectedUseCases(useCases)
     setCurrentSection('headphones')
+    setInputMode('manual')
     setTimeout(() => {
       document.querySelector('[data-section="headphones"]')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
@@ -65,11 +68,69 @@ export default function App() {
 
       <div data-section="headphones">
         {currentSection === 'headphones' && (
-          <HeadphoneForm
-            useCases={selectedUseCases}
-            onEvaluate={handleEvaluate}
-            isLoading={isLoading}
-          />
+          <>
+            {inputMode === 'manual' ? (
+              <HeadphoneForm
+                useCases={selectedUseCases}
+                onEvaluate={handleEvaluate}
+                isLoading={isLoading}
+                modeToggle={(
+                  <div className="mb-8 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setInputMode('manual')}
+                      className={`px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
+                        inputMode === 'manual'
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                      }`}
+                    >
+                      Manual Specs
+                    </button>
+                    <button
+                      onClick={() => setInputMode('amazon')}
+                      className={`px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
+                        inputMode === 'amazon'
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                      }`}
+                    >
+                      Amazon URL
+                    </button>
+                  </div>
+                )}
+              />
+            ) : (
+              <AmazonUrlForm
+                useCases={selectedUseCases}
+                onEvaluate={handleEvaluate}
+                isLoading={isLoading}
+                modeToggle={(
+                  <div className="mb-8 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setInputMode('manual')}
+                      className={`px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
+                        inputMode === 'manual'
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                      }`}
+                    >
+                      Manual Specs
+                    </button>
+                    <button
+                      onClick={() => setInputMode('amazon')}
+                      className={`px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
+                        inputMode === 'amazon'
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400'
+                      }`}
+                    >
+                      Amazon URL
+                    </button>
+                  </div>
+                )}
+              />
+            )}
+          </>
         )}
       </div>
 

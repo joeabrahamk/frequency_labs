@@ -12,6 +12,8 @@ Instead of building a generic product comparison tool, I decided to build a cont
 
 That shift from “spec comparison” to “context-driven decision modeling” became the foundation of the system.
 
+While testing early MVP flows, I noticed that constantly filling specs was inconvenient for me. That inconvenience would be even worse for users who are not comfortable with technical specifications. This pushed me to add a link-based comparison idea: let users paste product links so the system can extract specs automatically.
+
 ## 2. How My Thinking Evolved
 
 While modeling early scoring logic, I realized that real-world decisions are not spec-centric, they are context-centric.
@@ -284,6 +286,9 @@ Reason: Previously, ranking was based only on performance score, which didn't ac
 
 Localized pricing from USD to INR.
 Reason: Simplified for Indian market evaluation.
+
+Added link-based comparison (Amazon URL input) alongside manual spec entry.
+Reason: During MVP testing, manual data entry was inconvenient. This would be worse for non-technical users who don’t know headphone specs. Link-based input reduces friction by extracting specs from product URLs.
 
 ## 7. Final Architecture Philosophy
 
