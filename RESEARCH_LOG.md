@@ -175,6 +175,12 @@ Suggest how to integrate value_score cleanly into scoring engine.
 
 Ask me doubts for better result"
 
+### Prompt 6 – API integration on FastAPI from RAINFOREST
+
+"Debug RAINFOREST API implementation
+
+keep the current logic and structures as it is"
+
 ## Google Search Queries
 
 - multi criteria decision analysis weighted sum model
@@ -192,6 +198,9 @@ Ask me doubts for better result"
 - apple website layout inspiration
 - Design for details card Pinterest
 - Driver size in over ear headphones vs earbuds
+- free amazon api
+- amazon product api
+- RAINFOREST Amazon API
 
 ## References Checked
 
@@ -203,6 +212,7 @@ Ask me doubts for better result"
 - Headphone reviews discussing latency for gaming
 - Manufacturer specification sheets for headphones
 - Pinterest Designs
+- RAINFOREST
 
 ## Accepted From AI Outputs
 

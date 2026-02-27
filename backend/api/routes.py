@@ -76,7 +76,8 @@ def fetch_from_rainforest(api_key: str, domain: str, request_type: str, value: s
     try:
         response = requests.get(endpoint, params=params, timeout=15)
         response.raise_for_status()
-    except requests.RequestException:
+    except requests.RequestException as e:
+        print(f"ERROR: Rainforest API request failed: {str(e)}")
         return None, None
 
     result = response.json()
