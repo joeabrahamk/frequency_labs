@@ -261,6 +261,38 @@ Example impact:
 
 This ensures wired devices are evaluated fairly based on their actual characteristics.
 
+# Mistake 9: Vendor Lock-in with Single API Provider
+
+Initially built link-based comparison using only Rainforest API for product data extraction from Amazon/Flipkart.
+
+Problem:
+
+- Rainforest API encountered persistent 402 payment errors (account/billing issues)
+- System had no fallback when the single provider failed
+- Tightly coupled implementation made switching providers difficult
+- No flexibility to adapt to market conditions or cost changes
+
+First attempted fix (Gemini API):
+
+- Switched to Google Gemini to avoid third-party API dependencies
+- Implemented HTML fetching + LLM-based extraction
+- New problem: free tier had `quota limit = 0`, all requests returned 429 errors
+
+Correction:
+
+- Migrated to OpenRouter for vendor-agnostic LLM access
+- Decoupled API provider from business logic via generic HTTP interface
+- Supports 100+ models (Mistral, Claude, GPT-4, Llama, etc.) via configuration
+- Can switch models/providers instantly without code changes
+- Implemented error handling for quota (429) and auth (401) issues
+
+Key improvements:
+
+- No quota limits or account suspension risks
+- Easy parsing
+
+This taught me that production systems need flexibility at the data integration layer. Abstracting away provider-specific details allows the system to evolve with market conditions without touching core scoring logic.
+
 ## 6. What Changed During Development and Why
 
 Shift from spec-first scoring to use-case-first strategy design.

@@ -201,6 +201,8 @@ keep the current logic and structures as it is"
 - free amazon api
 - amazon product api
 - RAINFOREST Amazon API
+- Gemni api
+- OpenRouter.ai free models
 
 ## References Checked
 
@@ -239,3 +241,5 @@ keep the current logic and structures as it is"
 - Simplified scoring adjustments to prevent unstable outputs.
 - Added value_score after core logic stabilized.
 - Added link-based comparison (Amazon URL input) to reduce manual spec entry friction during MVP testing.
+- Added OpenRouter.ai model for parsing
+

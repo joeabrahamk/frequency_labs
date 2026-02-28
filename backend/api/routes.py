@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 import sys
@@ -67,52 +68,126 @@ def extract_asin(input_value: str) -> str:
 
     return ""
 
-def fetch_from_rainforest(api_key: str, domain: str, request_type: str, value: str):
-    endpoint = "https://api.rainforestapi.com/request"
-    params = {
-        "api_key": api_key,
-        "type": request_type,
-        "amazon_domain": domain,
-    }
-
-    if request_type == "product":
-        params["asin"] = value
-    else:
-        params["search_term"] = value
-
+def fetch_html_from_url(url: str) -> Optional[str]:
+    """Fetch HTML content from a product URL."""
     try:
-        response = requests.get(endpoint, params=params, timeout=15)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        print(f"Rainforest API Error: {e}")
-        status_code = None
-        body = None
-        if hasattr(e, 'response') and e.response is not None:
-            status_code = e.response.status_code
-            body = e.response.text
-            print(f"Status: {status_code}, Body: {body}")
-
-        message = "Rainforest API request failed"
-        if status_code == 402:
-            message = (
-                "Rainforest API account is suspended or requires a paid plan. "
-                "Please resolve billing/account status in Rainforest dashboard."
-            )
-        elif status_code:
-            message = f"Rainforest API returned status {status_code}"
-
-        return None, None, {
-            "status_code": status_code or 502,
-            "message": message,
-            "body": body,
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException as e:
+        print(f"Error fetching URL {url}: {e}")
+        return None
 
-    result = response.json()
+def clean_html(html: str) -> str:
+    """Clean HTML by removing scripts, styles, and extra whitespace."""
+    # Remove script and style tags
+    html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    # Remove HTML tags but keep text
+    html = re.sub(r'<[^>]+>', ' ', html)
+    # Remove extra whitespace
+    html = re.sub(r'\s+', ' ', html)
+    return html.strip()[:10000]  # Limit to first 10k characters
 
-    if request_type == "product":
-        return result.get("product"), result, None
+def extract_specs_with_llm(html_content: str, product_url: str, model: str, api_key: str) -> Optional[Dict[str, Any]]:
+    """
+    Use OpenRouter LLM to extract headphone specs from HTML content.
+    Args:
+        html_content: Cleaned HTML text
+        product_url: URL for context
+        model: Model name (e.g., "openrouter/auto", "mistralai/mistral-small", etc.)
+        api_key: OpenRouter API key
+    Returns: Dictionary with extracted specs or None on failure
+    """
+    if not api_key:
+        print("No API key provided")
+        return None
+    
+    try:
+        prompt = f"""Extract headphone specifications from this product page HTML. Return ONLY a JSON object with these exact fields:
+{{
+  "name": "product name",
+  "price": numeric price in INR (extract from page, convert USD to INR if needed, use 83.0 exchange rate),
+  "battery_life": numeric hours (null if not applicable or wired),
+  "latency": numeric milliseconds (null if not available),
+  "num_mics": numeric count (0 if not mentioned),
+  "device_type": one of ["Wireless Earbuds", "Wired Earbuds", "Over-Ear Wireless", "Over-Ear Wired", "Neckband"],
+  "water_resistance": string rating like "IPX4" or "IPX5" (use "None" if not found),
+  "driver_size": numeric millimeters (null if not available)
+}}
 
-    return result.get("search_results"), result, None
+Extract ALL available information. Use sensible defaults only when truly unavailable.
+Return ONLY valid JSON, no additional text.
+
+HTML Content:
+{html_content}
+
+URL: {product_url}
+"""
+        
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "HTTP-Referer": "https://frequency-labs.com",
+                "X-Title": "Frequency Labs",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.1,  # Low temperature for structured output
+            },
+            timeout=30,
+        )
+        
+        response.raise_for_status()
+        result = response.json()
+        
+        if "error" in result:
+            error_msg = result["error"].get("message", str(result["error"]))
+            print(f"OpenRouter error: {error_msg}")
+            
+            if "quota" in error_msg.lower() or "rate" in error_msg.lower():
+                raise HTTPException(status_code=429, detail=f"API quota/rate limit: {error_msg}")
+            if "auth" in error_msg.lower() or "invalid" in error_msg.lower():
+                raise HTTPException(status_code=401, detail=f"API authentication failed: {error_msg}")
+            
+            return None
+        
+        # Extract text from response
+        if "choices" not in result or not result["choices"]:
+            print("No choices in OpenRouter response")
+            return None
+        
+        message = result["choices"][0].get("message", {})
+        response_text = message.get("content", "").strip()
+        
+        if not response_text:
+            print("Empty response from OpenRouter")
+            return None
+        
+        # Extract JSON from response
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            parsed = json.loads(json_str)
+            return parsed
+        
+        print(f"Could not extract JSON from response: {response_text[:200]}")
+        return None
+        
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+        return None
+    except Exception as e:
+        print(f"Error extracting specs: {type(e).__name__}: {str(e)}")
+        return None
+
 
 def parse_number_from_text(text: str) -> Optional[float]:
     if not text:
@@ -158,73 +233,21 @@ def extract_from_specifications(specs: List[Dict[str, Any]], name_patterns: List
             return str(spec.get("value", "")).strip()
     return None
 
+
+def extract_from_specifications(specs: List[Dict[str, Any]], name_patterns: List[str]) -> Optional[str]:
+    """Placeholder for compatibility - not used with LLM extraction."""
+    for spec in specs or []:
+        name = str(spec.get("name", "")).lower()
+        if any(pattern in name for pattern in name_patterns):
+            return str(spec.get("value", "")).strip()
+    return None
+
 def extract_from_feature_bullets(bullets: List[str], pattern: str) -> Optional[str]:
+    """Placeholder for compatibility - not used with LLM extraction."""
     for bullet in bullets or []:
         if re.search(pattern, bullet, flags=re.IGNORECASE):
             return bullet
     return None
-
-def detect_device_type(product: Dict[str, Any]) -> str:
-    categories = [c.get("name", "").lower() for c in product.get("categories", [])]
-    specs = product.get("specifications", [])
-    form_factor = extract_from_specifications(specs, ["form factor", "ear placement", "earpiece shape"]) or ""
-    connectivity = extract_from_specifications(specs, ["connectivity", "wireless communication"]) or ""
-    jack = extract_from_specifications(specs, ["headphones jack"]) or ""
-
-    is_in_ear = any("in-ear" in c for c in categories) or "in ear" in form_factor.lower()
-    is_over_ear = any("over-ear" in c for c in categories) or "over ear" in form_factor.lower()
-    is_neckband = any("neckband" in c for c in categories)
-
-    is_wireless = "bluetooth" in connectivity.lower() or "wireless" in connectivity.lower() or "no jack" in jack.lower()
-
-    if is_neckband:
-        return "Neckband"
-    if is_over_ear and is_wireless:
-        return "Over-Ear Wireless"
-    if is_over_ear:
-        return "Over-Ear Wired"
-    if is_in_ear and is_wireless:
-        return "Wireless Earbuds"
-    if is_in_ear:
-        return "Wired Earbuds"
-    return "Wireless Earbuds" if is_wireless else "Wired Earbuds"
-
-def is_headphone_product(product: Dict[str, Any]) -> bool:
-    """Check if product is headphone-related."""
-    if not product:
-        return False
-    
-    # Check categories
-    categories = product.get("categories", [])
-    category_names = [c.get("name", "").lower() for c in categories]
-    headphone_keywords = ["headphone", "earbud", "earphone", "audio", "wireless earbuds", "in-ear", "over-ear", "neckband", "tws"]
-    
-    if any(keyword in " ".join(category_names) for keyword in headphone_keywords):
-        return True
-    
-    # Check title
-    title = (product.get("title") or "").lower()
-    if any(keyword in title for keyword in headphone_keywords):
-        return True
-    
-    # Check keywords
-    keywords = product.get("keywords_list", [])
-    keywords_str = " ".join([k.lower() for k in keywords])
-    if any(keyword in keywords_str for keyword in headphone_keywords):
-        return True
-    
-    return False
-
-def map_water_resistance(value: str) -> str:
-    if not value:
-        return "None"
-    upper = value.upper()
-    match = re.search(r"IPX\d", upper)
-    if match:
-        return match.group(0)
-    if "WATER RESISTANT" in upper or "WATERPROOF" in upper:
-        return "IPX4"
-    return "None"
 
 def water_resistance_to_float(rating: str) -> float:
     """Convert IPX rating string to numeric score for Headphone model"""
@@ -243,79 +266,52 @@ def water_resistance_to_float(rating: str) -> float:
     }
     return mapping.get(rating, 0.4)
 
-def convert_price_to_inr(price_value: Optional[float], currency: str = "INR") -> float:
-    """Convert price to INR if in USD."""
-    price_value = parse_price_value(price_value)
-    if price_value is None or price_value <= 0:
-        return 0
-    usd_to_inr = 83.0
-    if currency and currency.upper() in ["USD", "$"]:
-        return price_value * usd_to_inr
-    return price_value
-
-def map_product_to_headphone(product: Dict[str, Any]) -> tuple:
+def map_llm_response_to_headphone(llm_data: Dict[str, Any]) -> tuple:
     """
-    Map Rainforest API product data to headphone input format.
+    Map LLM extracted data to headphone input format.
     Returns: (headphone_dict, missing_fields_list)
     """
-    specs = product.get("specifications", [])
-    bullets = product.get("feature_bullets", [])
     missing_fields = []
-
-    battery_text = extract_from_specifications(specs, ["battery life", "playback", "battery"]) or ""
-    if not battery_text:
-        battery_text = extract_from_feature_bullets(bullets, r"(\d+\s*(hour|hr|hrs|hours))") or ""
-    battery_life = parse_hours_from_text(battery_text)
+    
+    # Extract each field with validation
+    name = llm_data.get("name") or "Unknown Headphone"
+    
+    price = parse_price_value(llm_data.get("price"))
+    if price is None or price <= 0:
+        price = 5000
+        missing_fields.append("price")
+    
+    battery_life = parse_price_value(llm_data.get("battery_life"))
     if battery_life is None:
         missing_fields.append("battery_life")
-
-    driver_text = extract_from_specifications(specs, ["driver"]) or ""
-    if not driver_text:
-        driver_text = extract_from_feature_bullets(bullets, r"(\d+\s*mm)") or ""
-    driver_size = parse_number_from_text(driver_text) if "mm" in driver_text.lower() else None
-    if driver_size is None:
-        missing_fields.append("driver_size")
-
-    mic_text = extract_from_feature_bullets(bullets, r"mic|microphone") or ""
-    if not mic_text:
-        mic_text = extract_from_specifications(specs, ["mic", "microphone"]) or ""
-    num_mics = parse_mic_count(mic_text) or 0
+    
+    latency = parse_price_value(llm_data.get("latency"))
+    if latency is None:
+        missing_fields.append("latency")
+    
+    num_mics = int(parse_price_value(llm_data.get("num_mics") or 0))
     if num_mics == 0:
         missing_fields.append("num_mics")
-
-    water_text = extract_from_specifications(specs, ["water resistance", "water resistant"]) or ""
-    water_resistance = map_water_resistance(water_text)
-    if water_resistance == "None":
-        water_resistance = "IPX4"
+    
+    device_type = llm_data.get("device_type") or "Wireless Earbuds"
+    
+    water_resistance_str = llm_data.get("water_resistance") or "None"
+    water_resistance = water_resistance_to_float(water_resistance_str)
+    if water_resistance_str == "None":
         missing_fields.append("water_resistance")
-
-    price_value = None
-    price_currency = "INR"
-    buybox = product.get("buybox_winner", {}) or {}
-    price_obj = (buybox.get("price", {}) or {})
-    price_value = parse_price_value(price_obj.get("value"))
-    price_currency = price_obj.get("currency", "INR") or "INR"
     
-    if price_value is None:
-        price_obj = (product.get("price", {}) or {})
-        price_value = parse_price_value(price_obj.get("value"))
-        price_currency = price_obj.get("currency", "INR") or "INR"
+    driver_size = parse_price_value(llm_data.get("driver_size"))
+    if driver_size is None:
+        missing_fields.append("driver_size")
     
-    price_value = convert_price_to_inr(price_value, price_currency)
-    if price_value is None or price_value == 0:
-        missing_fields.append("price")
-        price_value = 5000
-
-    missing_fields.append("latency")
-
     return {
-        "name": product.get("title") or product.get("brand") or "Amazon Product",
-        "price": price_value,
+        "name": name,
+        "price": price,
         "battery_life": battery_life,
-        "latency": None,
+        "latency": latency,
         "num_mics": num_mics,
-        "device_type": detect_device_type(product),
-        "water_resistance": water_resistance_to_float(water_resistance),
+        "device_type": device_type,
+        "water_resistance": water_resistance,
         "driver_size": driver_size,
     }, missing_fields
 
@@ -535,13 +531,21 @@ class AmazonEvaluateRequest(BaseModel):
 @app.post("/evaluate-amazon")
 async def evaluate_amazon(request: AmazonEvaluateRequest):
     """
-    Evaluate headphones from Amazon URLs.
+    Evaluate headphones from Amazon/Flipkart URLs using OpenRouter LLM for data extraction.
     """
-    api_key = os.getenv("RAINFOREST_API_KEY")
-    if not api_key:
+    llm_api_key = os.getenv("OPENROUTER_API_KEY")
+    llm_model = os.getenv("OPENROUTER_MODEL")
+    
+    if not llm_api_key:
         raise HTTPException(
             status_code=500,
-            detail="RAINFOREST_API_KEY environment variable is not configured. Please set it to use Amazon URL evaluation."
+            detail="OPENROUTER_API_KEY environment variable is not configured."
+        )
+    
+    if not llm_model:
+        raise HTTPException(
+            status_code=500,
+            detail="OPENROUTER_MODEL environment variable is not configured."
         )
 
     try:
@@ -549,6 +553,7 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
         all_missing = {}
         
         for link in request.amazon_urls:
+            # Expand short URLs
             parsed = urlparse(link)
             hostname = (parsed.hostname or "").lower()
             expanded_link = link
@@ -556,43 +561,37 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
             if hostname.startswith("amzn.") or hostname.endswith("amzn.in"):
                 expanded_link = expand_url(link)
 
-            asin = extract_asin(expanded_link)
-            if not asin:
-                raise HTTPException(status_code=400, detail=f"Invalid Amazon URL: {link}")
-
-            domain = "amazon.in"
-            if "amazon.com" in expanded_link:
-                domain = "amazon.com"
-
-            product_data, _, product_error = fetch_from_rainforest(api_key, domain, "product", asin)
-            search_error = None
-
-            if product_data is None and product_error and product_error.get("status_code") == 402:
-                raise HTTPException(status_code=503, detail=product_error.get("message"))
-
-            if product_data is None:
-                search_data, _, search_error = fetch_from_rainforest(api_key, domain, "search", asin)
-                if isinstance(search_data, list) and len(search_data) > 0:
-                    product_data = search_data[0]
-
-            if product_data is None:
-                if search_error and search_error.get("status_code") == 402:
-                    raise HTTPException(status_code=503, detail=search_error.get("message"))
-                if product_error and product_error.get("status_code") not in (None, 404):
-                    raise HTTPException(status_code=502, detail=product_error.get("message"))
-                if search_error and search_error.get("status_code") not in (None, 404):
-                    raise HTTPException(status_code=502, detail=search_error.get("message"))
-                raise HTTPException(status_code=404, detail=f"Product not found for ASIN {asin}")
-
-            # Validate that product is headphone-related
-            if not is_headphone_product(product_data):
-                product_name = product_data.get("title", "Unknown Product")
+            # Fetch HTML from the URL
+            html_content = fetch_html_from_url(expanded_link)
+            if not html_content:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to fetch product page from: {expanded_link}"
+                )
+            
+            # Clean HTML
+            cleaned_html = clean_html(html_content)
+            
+            # Use LLM to extract specs
+            llm_data = extract_specs_with_llm(cleaned_html, expanded_link, llm_model, llm_api_key)
+            if not llm_data:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to extract product data from: {expanded_link}. Please try another product."
+                )
+            
+            # Validate it's a headphone product by checking device_type
+            device_type = llm_data.get("device_type", "").lower()
+            valid_types = ["wireless earbuds", "wired earbuds", "over-ear", "neckband"]
+            if not any(valid_type in device_type for valid_type in valid_types):
+                product_name = llm_data.get("name", "Unknown Product")
                 raise HTTPException(
                     status_code=400,
                     detail=f"Invalid item: '{product_name}' is not a headphone product. Please provide a valid headphone/earbud link."
                 )
-
-            headphone_dict, missing_fields = map_product_to_headphone(product_data)
+            
+            # Map LLM response to headphone format
+            headphone_dict, missing_fields = map_llm_response_to_headphone(llm_data)
             headphones_data.append(headphone_dict)
             if missing_fields:
                 all_missing[headphone_dict["name"]] = missing_fields
@@ -602,7 +601,7 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
         if all_missing:
             result["missing_specs"] = all_missing
             result["explanation"]["note"] = (
-                f"Some specs were not available from Amazon and used neutral defaults: "
+                f"Some specs were not available and used neutral defaults: "
                 f"{', '.join([k + ': ' + ', '.join(v) for k, v in all_missing.items()])}"
             )
         
@@ -614,58 +613,6 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-
-@app.get("/product")
-async def get_product(link: str | None = None, asin: str | None = None):
-    api_key = os.getenv("RAINFOREST_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="RAINFOREST_API_KEY is not configured")
-
-    if not asin and link:
-        parsed = urlparse(link)
-        hostname = (parsed.hostname or "").lower()
-
-        if hostname.startswith("amzn.") or hostname.endswith("amzn.in"):
-            link = expand_url(link)
-
-        asin = extract_asin(link)
-
-    if not asin:
-        raise HTTPException(status_code=400, detail="Provide valid ASIN or product link")
-
-    domain = "amazon.in"
-    if link and "amazon.com" in link:
-        domain = "amazon.com"
-
-    product_data, full_response, product_error = fetch_from_rainforest(api_key, domain, "product", asin)
-
-    if product_data is None:
-        if product_error and product_error.get("status_code") == 402:
-            raise HTTPException(status_code=503, detail=product_error.get("message"))
-
-        search_data, _, search_error = fetch_from_rainforest(api_key, domain, "search", asin)
-
-        if isinstance(search_data, list) and len(search_data) > 0:
-            return {
-                "asin": asin,
-                "source": "search_fallback",
-                "product": search_data[0],
-            }
-
-        if search_error and search_error.get("status_code") == 402:
-            raise HTTPException(status_code=503, detail=search_error.get("message"))
-
-        return {
-            "asin": asin,
-            "error": "Product not found",
-            "raw": full_response,
-        }
-
-    return {
-        "asin": asin,
-        "source": "product_endpoint",
-        "product": product_data,
-    }
 
 @app.post("/rank_headphones/")
 async def rank_headphones(request: UserRequest):
