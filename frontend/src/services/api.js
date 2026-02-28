@@ -26,7 +26,14 @@ export async function evaluateDecision(payload) {
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`)
+      let detail = ''
+      try {
+        const errData = await response.json()
+        detail = errData?.detail || ''
+      } catch {
+        // ignore JSON parse errors for non-JSON error responses
+      }
+      throw new Error(detail ? `API Error: ${response.status} - ${detail}` : `API Error: ${response.status}`)
     }
 
     const data = await response.json()

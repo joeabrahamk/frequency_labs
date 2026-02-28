@@ -2,6 +2,12 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+import sys
+from pathlib import Path
+
+# Add backend directory to Python path for imports
+backend_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(backend_dir))
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -11,8 +17,9 @@ from dotenv import load_dotenv
 from models.headphone import UserRequest, UseCase
 from scoring.strategies import get_strategy
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file in backend directory
+env_file = backend_dir / ".env"
+load_dotenv(env_file)
 
 app = FastAPI()
 
@@ -77,15 +84,35 @@ def fetch_from_rainforest(api_key: str, domain: str, request_type: str, value: s
         response = requests.get(endpoint, params=params, timeout=15)
         response.raise_for_status()
     except requests.RequestException as e:
-        print(f"ERROR: Rainforest API request failed: {str(e)}")
-        return None, None
+        print(f"Rainforest API Error: {e}")
+        status_code = None
+        body = None
+        if hasattr(e, 'response') and e.response is not None:
+            status_code = e.response.status_code
+            body = e.response.text
+            print(f"Status: {status_code}, Body: {body}")
+
+        message = "Rainforest API request failed"
+        if status_code == 402:
+            message = (
+                "Rainforest API account is suspended or requires a paid plan. "
+                "Please resolve billing/account status in Rainforest dashboard."
+            )
+        elif status_code:
+            message = f"Rainforest API returned status {status_code}"
+
+        return None, None, {
+            "status_code": status_code or 502,
+            "message": message,
+            "body": body,
+        }
 
     result = response.json()
 
     if request_type == "product":
-        return result.get("product"), result
+        return result.get("product"), result, None
 
-    return result.get("search_results"), result
+    return result.get("search_results"), result, None
 
 def parse_number_from_text(text: str) -> Optional[float]:
     if not text:
@@ -490,12 +517,6 @@ def score_headphone_for_use_case(headphone_dict, use_case_name):
         score += contribution
         contributions[spec] = round(contribution, 4)
     
-    # Debug logging
-    print(f"\n=== {use_case_name} ===")
-    print(f"Strategy weights: {strategy.weights}")
-    print(f"Contributions: {contributions}")
-    print(f"Final score: {score}")
-    
     return score, contributions
 
 @app.post("/evaluate")
@@ -513,6 +534,9 @@ class AmazonEvaluateRequest(BaseModel):
 
 @app.post("/evaluate-amazon")
 async def evaluate_amazon(request: AmazonEvaluateRequest):
+    """
+    Evaluate headphones from Amazon URLs.
+    """
     api_key = os.getenv("RAINFOREST_API_KEY")
     if not api_key:
         raise HTTPException(
@@ -521,12 +545,10 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
         )
 
     try:
-        print("DEBUG: Request received")
         headphones_data = []
         all_missing = {}
         
         for link in request.amazon_urls:
-            print(f"DEBUG: Processing URL: {link}")
             parsed = urlparse(link)
             hostname = (parsed.hostname or "").lower()
             expanded_link = link
@@ -542,13 +564,24 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
             if "amazon.com" in expanded_link:
                 domain = "amazon.com"
 
-            product_data, _ = fetch_from_rainforest(api_key, domain, "product", asin)
+            product_data, _, product_error = fetch_from_rainforest(api_key, domain, "product", asin)
+            search_error = None
+
+            if product_data is None and product_error and product_error.get("status_code") == 402:
+                raise HTTPException(status_code=503, detail=product_error.get("message"))
+
             if product_data is None:
-                search_data, _ = fetch_from_rainforest(api_key, domain, "search", asin)
+                search_data, _, search_error = fetch_from_rainforest(api_key, domain, "search", asin)
                 if isinstance(search_data, list) and len(search_data) > 0:
                     product_data = search_data[0]
 
             if product_data is None:
+                if search_error and search_error.get("status_code") == 402:
+                    raise HTTPException(status_code=503, detail=search_error.get("message"))
+                if product_error and product_error.get("status_code") not in (None, 404):
+                    raise HTTPException(status_code=502, detail=product_error.get("message"))
+                if search_error and search_error.get("status_code") not in (None, 404):
+                    raise HTTPException(status_code=502, detail=search_error.get("message"))
                 raise HTTPException(status_code=404, detail=f"Product not found for ASIN {asin}")
 
             # Validate that product is headphone-related
@@ -560,7 +593,6 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
                 )
 
             headphone_dict, missing_fields = map_product_to_headphone(product_data)
-            print("DEBUG: Mapped product successfully")
             headphones_data.append(headphone_dict)
             if missing_fields:
                 all_missing[headphone_dict["name"]] = missing_fields
@@ -579,7 +611,6 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"ERROR: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
@@ -606,10 +637,13 @@ async def get_product(link: str | None = None, asin: str | None = None):
     if link and "amazon.com" in link:
         domain = "amazon.com"
 
-    product_data, full_response = fetch_from_rainforest(api_key, domain, "product", asin)
+    product_data, full_response, product_error = fetch_from_rainforest(api_key, domain, "product", asin)
 
     if product_data is None:
-        search_data, _ = fetch_from_rainforest(api_key, domain, "search", asin)
+        if product_error and product_error.get("status_code") == 402:
+            raise HTTPException(status_code=503, detail=product_error.get("message"))
+
+        search_data, _, search_error = fetch_from_rainforest(api_key, domain, "search", asin)
 
         if isinstance(search_data, list) and len(search_data) > 0:
             return {
@@ -617,6 +651,9 @@ async def get_product(link: str | None = None, asin: str | None = None):
                 "source": "search_fallback",
                 "product": search_data[0],
             }
+
+        if search_error and search_error.get("status_code") == 402:
+            raise HTTPException(status_code=503, detail=search_error.get("message"))
 
         return {
             "asin": asin,
