@@ -92,6 +92,25 @@ def clean_html(html: str) -> str:
     html = re.sub(r'\s+', ' ', html)
     return html.strip()[:10000]  # Limit to first 10k characters
 
+
+HEADPHONE_KEYWORDS = [
+    "headphone", "headphones", "earbud", "earbuds", "earphone", "earphones",
+    "over-ear", "on-ear", "neckband", "tws", "iem", "in-ear"
+]
+
+
+def is_headphone_related_product(llm_data: Dict[str, Any]) -> bool:
+    """Best-effort check to confirm extracted product is headphone-related."""
+    name = str(llm_data.get("name") or "").lower()
+    device_type = str(llm_data.get("device_type") or "").lower()
+    combined = f"{name} {device_type}"
+
+    if any(keyword in combined for keyword in HEADPHONE_KEYWORDS):
+        return True
+
+    valid_type_fragments = ["wireless earbuds", "wired earbuds", "over-ear", "neckband", "on-ear", "headphone"]
+    return any(fragment in device_type for fragment in valid_type_fragments)
+
 def extract_specs_with_llm(html_content: str, product_url: str, model: str, api_key: str) -> Optional[Dict[str, Any]]:
     """
     Use OpenRouter LLM to extract headphone specs from HTML content.
@@ -551,6 +570,7 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
     try:
         headphones_data = []
         all_missing = {}
+        invalid_products = []
         
         for link in request.amazon_urls:
             # Expand short URLs
@@ -564,10 +584,12 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
             # Fetch HTML from the URL
             html_content = fetch_html_from_url(expanded_link)
             if not html_content:
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"Failed to fetch product page from: {expanded_link}"
-                )
+                invalid_products.append({
+                    "url": expanded_link,
+                    "name": "Unknown Product",
+                    "reason": "Failed to fetch product page"
+                })
+                continue
             
             # Clean HTML
             cleaned_html = clean_html(html_content)
@@ -575,20 +597,22 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
             # Use LLM to extract specs
             llm_data = extract_specs_with_llm(cleaned_html, expanded_link, llm_model, llm_api_key)
             if not llm_data:
-                raise HTTPException(
-                    status_code=502,
-                    detail=f"Failed to extract product data from: {expanded_link}. Please try another product."
-                )
+                invalid_products.append({
+                    "url": expanded_link,
+                    "name": "Unknown Product",
+                    "reason": "Failed to extract product data"
+                })
+                continue
             
-            # Validate it's a headphone product by checking device_type
-            device_type = llm_data.get("device_type", "").lower()
-            valid_types = ["wireless earbuds", "wired earbuds", "over-ear", "neckband"]
-            if not any(valid_type in device_type for valid_type in valid_types):
+            # Validate headphone-related product
+            if not is_headphone_related_product(llm_data):
                 product_name = llm_data.get("name", "Unknown Product")
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid item: '{product_name}' is not a headphone product. Please provide a valid headphone/earbud link."
-                )
+                invalid_products.append({
+                    "url": expanded_link,
+                    "name": product_name,
+                    "reason": "Not a headphone or related audio-wearable product"
+                })
+                continue
             
             # Map LLM response to headphone format
             headphone_dict, missing_fields = map_llm_response_to_headphone(llm_data)
@@ -597,12 +621,19 @@ async def evaluate_amazon(request: AmazonEvaluateRequest):
                 all_missing[headphone_dict["name"]] = missing_fields
 
         result = evaluate_headphones(headphones_data, request.use_cases)
+        result["invalid_products"] = invalid_products
         
         if all_missing:
             result["missing_specs"] = all_missing
             result["explanation"]["note"] = (
                 f"Some specs were not available and used neutral defaults: "
                 f"{', '.join([k + ': ' + ', '.join(v) for k, v in all_missing.items()])}"
+            )
+
+        if not headphones_data and invalid_products:
+            result["explanation"]["note"] = (
+                "No valid headphone products found in provided links. "
+                "Please review invalid product cards below."
             )
         
         return result

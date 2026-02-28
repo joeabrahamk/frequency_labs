@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import RankingCard from './RankingCard'
+import InvalidProductCard from './InvalidProductCard'
 
 export default function ResultsSection({ results, useCases }) {
   const [activeTab, setActiveTab] = useState('performance')
@@ -12,6 +13,7 @@ export default function ResultsSection({ results, useCases }) {
   const displayedRankings = activeTab === 'performance' 
     ? results.ranked_headphones 
     : results.value_ranked_headphones
+  const invalidProducts = results.invalid_products || []
 
   return (
     <section className="py-20 px-6 bg-neutral-50">
@@ -92,6 +94,18 @@ export default function ResultsSection({ results, useCases }) {
             <p className="text-neutral-700 leading-relaxed">
               {results.explanation.reasoning}
             </p>
+          </div>
+        )}
+
+        {/* Invalid Product Cards */}
+        {invalidProducts.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-xl font-bold text-neutral-900 mb-4">Invalid or Non-Headphone Products</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {invalidProducts.map((item, index) => (
+                <InvalidProductCard key={`${item.url || 'invalid'}-${index}`} item={item} />
+              ))}
+            </div>
           </div>
         )}
       </div>
