@@ -13,7 +13,7 @@ const isValidAmazonUrl = (value) => {
   try {
     const parsed = new URL(value.trim())
     const hostname = parsed.hostname.toLowerCase()
-    return hostname.includes('amazon.') || hostname.startsWith('amzn.')
+    return hostname.includes('amazon.') || hostname.startsWith('flipkart.')
   } catch (error) {
     return false
   }
@@ -38,10 +38,10 @@ export default function AmazonUrlForm({ useCases, onEvaluate, isLoading, modeTog
 
   const getUrlError = (value) => {
     if (!value) {
-      return 'Please add an Amazon product link.'
+      return 'Please add an Amazon / Flipkart product link (Long Link).'
     }
     if (!isValidAmazonUrl(value)) {
-      return 'Enter a valid Amazon product URL.'
+      return 'Enter a valid Amazon / Flipkart product URL (Long URL).'
     }
     return ''
   }
