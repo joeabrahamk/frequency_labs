@@ -12,7 +12,7 @@ Replaced Rainforest and Gemini APIs with **OpenRouter** for LLM-based product da
 ## Architecture
 
 ```
-User provides Amazon/Flipkart Link
+User provides Amazon Link
     ↓
 expand_url() - handle short URLs
     ↓

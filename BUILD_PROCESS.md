@@ -263,7 +263,7 @@ This ensures wired devices are evaluated fairly based on their actual characteri
 
 # Mistake 9: Vendor Lock-in with Single API Provider
 
-Initially built link-based comparison using only Rainforest API for product data extraction from Amazon/Flipkart.
+Initially built link-based comparison using only Rainforest API for product data extraction from Amazon.
 
 Problem:
 

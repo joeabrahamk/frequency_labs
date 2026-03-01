@@ -74,7 +74,7 @@ frequency_labs/
         │   ├── UseCaseSelector.jsx         # Use case selection UI
         │   ├── HeadphoneForm.jsx           # Manual spec input form
         │   ├── HeadphoneCard.jsx           # Individual headphone card
-        │   ├── AmazonUrlForm.jsx           # Amazon/Flipkart URL input
+        │   ├── AmazonUrlForm.jsx           # Amazon URL input
         │   ├── ResultsSection.jsx          # Results display container
         │   ├── RankingCard.jsx             # Individual ranking card
         │   └── InvalidProductCard.jsx      # Invalid/non-headphone product card
