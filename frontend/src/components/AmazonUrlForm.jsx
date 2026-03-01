@@ -13,7 +13,7 @@ const isValidAmazonUrl = (value) => {
   try {
     const parsed = new URL(value.trim())
     const hostname = parsed.hostname.toLowerCase()
-    return hostname.includes('amazon.') || hostname.startsWith('flipkart.')
+    return hostname.includes('amazon.') 
   } catch (error) {
     return false
   }
@@ -38,10 +38,10 @@ export default function AmazonUrlForm({ useCases, onEvaluate, isLoading, modeTog
 
   const getUrlError = (value) => {
     if (!value) {
-      return 'Please add an Amazon / Flipkart product link (Long Link).'
+      return 'Please add an Amazon product link in Long Link format (https://www.amazon.in/boAt-Airdopes-Multidevice-Bluetooth-Earphones/dp/B0F8BVYRWS).'
     }
     if (!isValidAmazonUrl(value)) {
-      return 'Enter a valid Amazon / Flipkart product URL (Long URL).'
+      return 'Enter a valid Amazon product URL in Long URL format (https://www.amazon.in/boAt-Airdopes-Multidevice-Bluetooth-Earphones/dp/B0F8BVYRWS).'
     }
     return ''
   }
@@ -81,7 +81,16 @@ export default function AmazonUrlForm({ useCases, onEvaluate, isLoading, modeTog
                       className="input-base"
                     />
                     {errorText && (
-                      <p className="mt-2 text-sm text-red-600">{errorText}</p>
+                      <p className="mt-2 text-sm text-red-600">
+                        {errorText.includes('https') ? (
+                          <>
+                            {errorText.split('(https')[0]}
+                            <span className="text-neutral-400">(https{errorText.split('https')[1]}</span>
+                          </>
+                        ) : (
+                          errorText
+                        )}
+                      </p>
                     )}
                   </div>
                   {urls.length > 1 && (
