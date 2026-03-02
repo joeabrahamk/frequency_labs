@@ -17,9 +17,11 @@ export default function UseCaseSelector({ onUseCasesChange }) {
       const updated = { ...prev }
       if (updated[caseId]) {
         delete updated[caseId]
-        const newWeights = { ...weights }
-        delete newWeights[caseId]
-        setWeights(newWeights)
+        setWeights((prevWeights) => {
+          const newWeights = { ...prevWeights }
+          delete newWeights[caseId]
+          return newWeights
+        })
       } else {
         updated[caseId] = true
       }
@@ -28,17 +30,40 @@ export default function UseCaseSelector({ onUseCasesChange }) {
   }
 
   const handleWeightChange = (caseId, value) => {
+    const parsedValue = Math.min(100, Math.max(0, parseInt(value) || 0))
+
     setWeights((prev) => ({
       ...prev,
-      [caseId]: Math.min(100, Math.max(0, parseInt(value) || 0)),
+      [caseId]: Math.min(
+        parsedValue,
+        Math.max(
+          0,
+          100 -
+            Object.entries(prev)
+              .filter(([id]) => id !== caseId)
+              .reduce((sum, [, weight]) => sum + weight, 0)
+        )
+      ),
     }))
   }
 
   const handleApply = () => {
-    const useCasesArray = Object.keys(selectedCases).map((caseId) => ({
+    const selectedCaseIds = Object.keys(selectedCases)
+    if (!selectedCaseIds.length) {
+      onUseCasesChange([])
+      return
+    }
+
+    const specifiedTotal = selectedCaseIds.reduce((sum, caseId) => sum + (weights[caseId] ?? 0), 0)
+    const remaining = Math.max(0, 100 - specifiedTotal)
+    const unspecifiedCaseIds = selectedCaseIds.filter((caseId) => weights[caseId] == null)
+    const fallbackWeight = unspecifiedCaseIds.length ? remaining / unspecifiedCaseIds.length : 0
+
+    const useCasesArray = selectedCaseIds.map((caseId) => ({
       name: caseId,
-      percentage: weights[caseId] || 100 / Object.keys(selectedCases).length,
+      percentage: weights[caseId] ?? fallbackWeight,
     }))
+
     onUseCasesChange(useCasesArray)
   }
 
