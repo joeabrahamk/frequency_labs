@@ -39,9 +39,9 @@ export default function UseCaseSelector({ onUseCasesChange }) {
         Math.max(
           0,
           100 -
-            Object.entries(prev)
-              .filter(([id]) => id !== caseId)
-              .reduce((sum, [, weight]) => sum + weight, 0)
+          Object.entries(prev)
+            .filter(([id]) => id !== caseId)
+            .reduce((sum, [, weight]) => sum + weight, 0)
         )
       ),
     }))
@@ -79,11 +79,10 @@ export default function UseCaseSelector({ onUseCasesChange }) {
           {USE_CASES.map((useCase) => (
             <div
               key={useCase.id}
-              className={`p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                selectedCases[useCase.id]
+              className={`p-4 rounded-lg border-2 transition-all duration-300 cursor-pointer ${selectedCases[useCase.id]
                   ? 'border-black bg-white'
                   : 'border-neutral-200 bg-white hover:border-neutral-300'
-              }`}
+                }`}
               onClick={() => handleToggleCase(useCase.id)}
             >
               <div className="flex items-center justify-between">
@@ -91,7 +90,7 @@ export default function UseCaseSelector({ onUseCasesChange }) {
                   <input
                     type="checkbox"
                     checked={selectedCases[useCase.id] || false}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     className="w-5 h-5 rounded border-neutral-300 cursor-pointer"
                   />
                   <span className="text-lg font-medium">{useCase.label}</span>
